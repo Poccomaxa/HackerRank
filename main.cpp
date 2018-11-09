@@ -2,79 +2,66 @@
 
 using namespace std;
 
+void choose(const string &a, const string &b, int compi, int compj, int &chosi, int &chosj, string &res, function<void()> fallback)
+{
+	if (a[compi] < b[compj])
+	{
+		res.push_back(a[chosi]);
+		++chosi;
+	}
+	else if (a[compi] > b[compj])
+	{
+		res.push_back(b[chosj]);
+		++chosj;
+	}
+	else
+	{
+		fallback();
+	}
+}
+
 // Complete the morganAndString function below.
 string morganAndString(string a, string b) {
 	string res;
 	int i = 0;
 	int j = 0;
-	while (i < a.size() && j < b.size())
+	int ii = i;
+	int jj = j;
+	vector<unordered_map<int, int>> aInB;
+
+	while (true)
 	{
-		if (a[i] < b[j])
+		if (a[i] == a[j])
 		{
-			res.push_back(a[i]);
 			++i;
-		}
-		else if (a[i] > b[j])
-		{
-			res.push_back(b[j]);
 			++j;
 		}
-		else
-		{
-			int ii = i + 1;
-			int jj = j + 1;
-			while (ii < a.size() && jj < b.size() && a[ii] == b[jj])
-			{
-				++ii;
-				++jj;
-			}
-
-			if (ii < a.size() && jj < b.size())
-			{
-				if (a[ii] < b[jj])
-				{
-					res.push_back(a[i]);
-					++i;
-				}
-				else
-				{
-					res.push_back(b[j]);
-					++j;
-				}
-			}
-			else if (ii < a.size())
-			{
-				if (a[ii] < b[j])
-				{
-					res.push_back(a[i]);
-					++i;
-				}
-				else
-				{
-					res.push_back(b[j]);
-					++j;
-				}
-			}
-			else if (jj < b.size())
-			{
-				if (b[jj] < a[i])
-				{
-					res.push_back(b[j]);
-					++j;
-				}
-				else
-				{
-					res.push_back(a[i]);
-					++i;
-				}
-			}
-			else
-			{
-				res.push_back(a[i]);
-				++i;
-			}
-		}
 	}
+	//while (i < a.size() && j < b.size())
+	//{
+	//	choose(a, b, i, j, i, j, res, [&] ()
+	//	{
+	//		while (ii - i <= 0 || jj - j <= 0)
+	//		{
+	//			++ii;
+	//			++jj;
+	//			while (ii < a.size() && jj < b.size() && a[ii] == b[jj])
+	//			{
+	//				++ii;
+	//				++jj;
+	//			}
+	//		}
+
+	//		int ci = ii < a.size() ? ii : i;
+	//		int cj = jj < b.size() ? jj : j;
+
+	//		choose(a, b, ci, cj, i, j, res, [&]()
+	//		{
+	//			res.push_back(a[i]);
+	//			++i;
+	//		});
+	//	});
+	//}
 
 	return res + a.substr(i, a.size()) + b.substr(j, b.size());
 }
