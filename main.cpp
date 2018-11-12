@@ -27,41 +27,56 @@ string morganAndString(string a, string b) {
 	int j = 0;
 	int ii = i;
 	int jj = j;
-	vector<unordered_map<int, int>> aInB;
-
-	while (true)
+	vector<pair<int, int>> nextLowerI;
+	vector<pair<int, int>> nextLowerJ;
+	
+	while (i < a.size() && j < b.size())
 	{
-		if (a[i] == a[j])
+		choose(a, b, i, j, i, j, res, [&]()
 		{
-			++i;
-			++j;
-		}
+			if (ii > i && jj > j)
+			{
+
+			}
+			else
+			{
+				nextLowerI.clear();
+				nextLowerJ.clear();
+				ii = i + 1;
+				jj = j + 1;
+				while (ii < a.size() && jj < b.size() && a[ii] == b[jj])
+				{
+					if (a[ii] < a[i])
+					{
+						if (!nextLowerI.empty() && !nextLowerJ.empty())
+						{
+							nextLowerI.back().second = ii;
+							nextLowerJ.back().second = jj;
+						}
+						nextLowerI.push_back(make_pair(ii, ii));
+						nextLowerJ.push_back(make_pair(jj, jj));
+					}
+					++ii;
+					++jj;
+				}
+			}
+
+			int moreThanFront = 0;
+			if (i > nextLowerI.front().first)
+			{
+
+			}
+
+			int ci = ii < a.size() ? ii : i;
+			int cj = jj < b.size() ? jj : j;
+
+			choose(a, b, ci, cj, i, j, res, [&]()
+			{
+				res.push_back(a[i]);
+				++i;
+			});
+		});
 	}
-	//while (i < a.size() && j < b.size())
-	//{
-	//	choose(a, b, i, j, i, j, res, [&] ()
-	//	{
-	//		while (ii - i <= 0 || jj - j <= 0)
-	//		{
-	//			++ii;
-	//			++jj;
-	//			while (ii < a.size() && jj < b.size() && a[ii] == b[jj])
-	//			{
-	//				++ii;
-	//				++jj;
-	//			}
-	//		}
-
-	//		int ci = ii < a.size() ? ii : i;
-	//		int cj = jj < b.size() ? jj : j;
-
-	//		choose(a, b, ci, cj, i, j, res, [&]()
-	//		{
-	//			res.push_back(a[i]);
-	//			++i;
-	//		});
-	//	});
-	//}
 
 	return res + a.substr(i, a.size()) + b.substr(j, b.size());
 }
