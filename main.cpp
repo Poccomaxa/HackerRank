@@ -2,17 +2,29 @@
 
 using namespace std;
 
-void choose(const string &a, const string &b, int compi, int compj, int &chosi, int &chosj, string &res, function<void()> fallback)
+void chooseFrom(const string &from, int &index, list<int> &seq, string &res)
 {
-	if (a[compi] < b[compj])
+	res.push_back(from[index]);
+	++index;
+	if (!seq.empty())
 	{
-		res.push_back(a[chosi]);
-		++chosi;
+		--seq.front();
+		if (seq.front() == 0)
+		{
+			seq.pop_front();
+		}
 	}
-	else if (a[compi] > b[compj])
+}
+
+void choose(const string &a, const string &b, char compi, char compj, int &chosi, int &chosj, list<int> &lowSeqI, list<int> &lowSeqJ, string &res, function<void()> fallback)
+{
+	if (compi < compj)
 	{
-		res.push_back(b[chosj]);
-		++chosj;
+		chooseFrom(a, chosi, lowSeqI, res);
+	}
+	else if (compi > compj)
+	{
+		chooseFrom(b, chosj, lowSeqJ, res);
 	}
 	else
 	{
@@ -27,53 +39,51 @@ string morganAndString(string a, string b) {
 	int j = 0;
 	int ii = i;
 	int jj = j;
-	vector<pair<int, int>> nextLowerI;
-	vector<pair<int, int>> nextLowerJ;
-	
+	list<int> lowSeqI;
+	list<int> lowSeqJ;
+
 	while (i < a.size() && j < b.size())
 	{
-		choose(a, b, i, j, i, j, res, [&]()
+		choose(a, b, a[i], b[j], i, j, lowSeqI, lowSeqJ, res, [&]()
 		{
-			if (ii > i && jj > j)
+			char ai;
+			char bj;
+			char prevai = a[i];
+			if (!(ii > i && jj > j) || lowSeqI.size() != lowSeqJ.size())
 			{
-
-			}
-			else
-			{
-				nextLowerI.clear();
-				nextLowerJ.clear();
+				lowSeqI.clear();
 				ii = i + 1;
 				jj = j + 1;
-				while (ii < a.size() && jj < b.size() && a[ii] == b[jj])
+				lowSeqI.push_back(1);				
+				ai = ii < a.size() ? a[ii] : b[ii - a.size()];
+				bj = jj < b.size() ? b[jj] : a[jj - b.size()];
+				while ((ii < a.size() || jj < b.size()) && ai == bj)
 				{
-					if (a[ii] < a[i])
+					if (ai > prevai)
 					{
-						if (!nextLowerI.empty() && !nextLowerJ.empty())
-						{
-							nextLowerI.back().second = ii;
-							nextLowerJ.back().second = jj;
-						}
-						nextLowerI.push_back(make_pair(ii, ii));
-						nextLowerJ.push_back(make_pair(jj, jj));
+						lowSeqI.push_back(0);
 					}
+					prevai = ai;
 					++ii;
 					++jj;
+					++lowSeqI.back();
+
+					ai = ii < a.size() ? a[ii] : b[ii - a.size()];
+					bj = jj < b.size() ? b[jj] : a[jj - b.size()];
 				}
+				lowSeqJ = lowSeqI;
+				ii = ii < a.size() ? ii : a.size() - 1;
+				jj = jj < b.size() ? jj : b.size() - 1;
+			}	
+			else
+			{
+				ai = a[ii];
+				bj = b[jj];
 			}
 
-			int moreThanFront = 0;
-			if (i > nextLowerI.front().first)
+			choose(a, b, ai, bj, i, j, lowSeqI, lowSeqJ, res, [&]()
 			{
-
-			}
-
-			int ci = ii < a.size() ? ii : i;
-			int cj = jj < b.size() ? jj : j;
-
-			choose(a, b, ci, cj, i, j, res, [&]()
-			{
-				res.push_back(a[i]);
-				++i;
+				chooseFrom(a, i, lowSeqI, res);
 			});
 		});
 	}
