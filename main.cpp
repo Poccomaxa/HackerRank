@@ -2,86 +2,91 @@
 
 using namespace std;
 
-void chooseFrom(const string &from, int &index, list<int> &seq, string &res)
+vector<string> split_string(string);
+
+enum class Operation : int
 {
-	res.push_back(from[index]);
-	++index;
-	if (!seq.empty())
+	UNKNOWN,
+	CHARACTER,
+	CONCATENATION,
+	UNION,
+	WILDCARD
+};
+
+struct Regular
+{
+	Regular(char aC, Operation aOp) : c(aC), op(aOp) {}
+	char c;
+	Operation op;
+
+	shared_ptr<Regular> lNode;
+	shared_ptr<Regular> rNode;
+};
+
+int countStrings(string r, int l) {
+	shared_ptr<Regular> root;
+	vector<shared_ptr<Regular>> stack;
+	vector<Operation> opStack;
+	for (char c : r)
 	{
-		--seq.front();
-		if (seq.front() == 0)
+		if (isalpha(c))
 		{
-			seq.pop_front();
+			stack.push_back(make_shared<Regular>(c, Operation::CHARACTER));
 		}
-	}
-}
-
-void choose(const string &a, const string &b, char compi, char compj, int &chosi, int &chosj, list<int> &lowSeqI, list<int> &lowSeqJ, string &res, function<void()> fallback)
-{
-	if (compi < compj)
-	{
-		chooseFrom(a, chosi, lowSeqI, res);
-	}
-	else if (compi > compj)
-	{
-		chooseFrom(b, chosj, lowSeqJ, res);
-	}
-	else
-	{
-		fallback();
-	}
-}
-
-// Complete the morganAndString function below.
-string morganAndString(string a, string b) {
-	string res;
-	int i = 0;
-	int j = 0;
-	int ii = i;
-	int jj = j;
-	char ai;
-	char bj;
-	list<int> lowSeqI;
-	list<int> lowSeqJ;
-
-	while (i < a.size() && j < b.size())
-	{
-		choose(a, b, a[i], b[j], i, j, lowSeqI, lowSeqJ, res, [&]()
+		else
 		{
-			char prevai = a[i];
-			if (!(ii > i && jj > j) || lowSeqI.size() != lowSeqJ.size())
+			switch (c)
 			{
-				lowSeqI.clear();
-				ii = i + 1;
-				jj = j + 1;
-				lowSeqI.push_back(1);
-				ai = ii < a.size() ? a[ii] : b[ii - a.size() + j];
-				bj = jj < b.size() ? b[jj] : a[jj - b.size() + i];
-				while ((ii < a.size() || jj < b.size()) && ai == bj)
+			case '(':
+				stack.push_back(make_shared<Regular>('\0', Operation::UNKNOWN));
+				break;
+			case ')':
+			{
+				auto last = stack.back(); stack.pop_back();
+				auto prev = stack.back(); stack.pop_back();
+				Operation op;
+				if (opStack.empty())
 				{
-					if (ai > prevai)
-					{
-						lowSeqI.push_back(0);
-					}
-					prevai = ai;
-					++ii;
-					++jj;
-					++lowSeqI.back();
-
-					ai = ii < a.size() ? a[ii] : b[ii - a.size() + j];
-					bj = jj < b.size() ? b[jj] : a[jj - b.size() + i];
+					op = Operation::CONCATENATION;
 				}
-				lowSeqJ = lowSeqI;
+				else
+				{
+					op = opStack.back(); opStack.pop_back();
+				}
+				if (op == Operation::WILDCARD)
+				{
+					prev->op = op;
+					last->lNode = prev;
+					stack.push_back(prev);
+				} 
+				else if (prev->op != Operation::UNKNOWN)
+				{
+					auto node = stack.back(); stack.pop_back();
+					node->op = op;
+					node->lNode = last;
+					node->rNode = prev;
+					stack.push_back(node);
+				}
+				else
+				{
+					stack.push_back(last);
+				}
+				break;
 			}
-
-			choose(a, b, ai, bj, i, j, lowSeqI, lowSeqJ, res, [&]()
-			{
-				chooseFrom(a, i, lowSeqI, res);
-			});
-		});
+			case '|':
+				opStack.push_back(Operation::UNION);
+				break;
+			case '*':
+				opStack.push_back(Operation::WILDCARD);
+				break;
+			default:
+				break;
+			}
+		}		
 	}
 
-	return res + a.substr(i, a.size()) + b.substr(j, b.size());
+	root = stack.front();
+	return 0;
 }
 
 int main()
@@ -93,13 +98,16 @@ int main()
 	cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
 	for (int t_itr = 0; t_itr < t; t_itr++) {
-		string a;
-		getline(cin, a);
+		string rl_temp;
+		getline(cin, rl_temp);
 
-		string b;
-		getline(cin, b);
+		vector<string> rl = split_string(rl_temp);
 
-		string result = morganAndString(a, b);
+		string r = rl[0];
+
+		int l = stoi(rl[1]);
+
+		int result = countStrings(r, l);
 
 		fout << result << "\n";
 	}
@@ -107,4 +115,33 @@ int main()
 	fout.close();
 
 	return 0;
+}
+
+vector<string> split_string(string input_string) {
+	string::iterator new_end = unique(input_string.begin(), input_string.end(), [](const char &x, const char &y) {
+		return x == y && x == ' ';
+	});
+
+	input_string.erase(new_end, input_string.end());
+
+	while (input_string[input_string.length() - 1] == ' ') {
+		input_string.pop_back();
+	}
+
+	vector<string> splits;
+	char delimiter = ' ';
+
+	size_t i = 0;
+	size_t pos = input_string.find(delimiter);
+
+	while (pos != string::npos) {
+		splits.push_back(input_string.substr(i, pos - i));
+
+		i = pos + 1;
+		pos = input_string.find(delimiter, i);
+	}
+
+	splits.push_back(input_string.substr(i, min(pos, input_string.length()) - i + 1));
+
+	return splits;
 }
