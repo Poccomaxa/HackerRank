@@ -39,6 +39,8 @@ string morganAndString(string a, string b) {
 	int j = 0;
 	int ii = i;
 	int jj = j;
+	char ai;
+	char bj;
 	list<int> lowSeqI;
 	list<int> lowSeqJ;
 
@@ -46,17 +48,15 @@ string morganAndString(string a, string b) {
 	{
 		choose(a, b, a[i], b[j], i, j, lowSeqI, lowSeqJ, res, [&]()
 		{
-			char ai;
-			char bj;
 			char prevai = a[i];
 			if (!(ii > i && jj > j) || lowSeqI.size() != lowSeqJ.size())
 			{
 				lowSeqI.clear();
 				ii = i + 1;
 				jj = j + 1;
-				lowSeqI.push_back(1);				
-				ai = ii < a.size() ? a[ii] : b[ii - a.size()];
-				bj = jj < b.size() ? b[jj] : a[jj - b.size()];
+				lowSeqI.push_back(1);
+				ai = ii < a.size() ? a[ii] : b[ii - a.size() + j];
+				bj = jj < b.size() ? b[jj] : a[jj - b.size() + i];
 				while ((ii < a.size() || jj < b.size()) && ai == bj)
 				{
 					if (ai > prevai)
@@ -68,17 +68,10 @@ string morganAndString(string a, string b) {
 					++jj;
 					++lowSeqI.back();
 
-					ai = ii < a.size() ? a[ii] : b[ii - a.size()];
-					bj = jj < b.size() ? b[jj] : a[jj - b.size()];
+					ai = ii < a.size() ? a[ii] : b[ii - a.size() + j];
+					bj = jj < b.size() ? b[jj] : a[jj - b.size() + i];
 				}
 				lowSeqJ = lowSeqI;
-				ii = ii < a.size() ? ii : a.size() - 1;
-				jj = jj < b.size() ? jj : b.size() - 1;
-			}	
-			else
-			{
-				ai = a[ii];
-				bj = b[jj];
 			}
 
 			choose(a, b, ai, bj, i, j, lowSeqI, lowSeqJ, res, [&]()
