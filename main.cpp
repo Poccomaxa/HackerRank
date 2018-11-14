@@ -23,6 +23,127 @@ struct Regular
 	shared_ptr<Regular> rNode;
 };
 
+struct AutNode
+{
+	AutNode()
+	{
+		static int i = 0;
+		n = i;
+		++i;
+	}
+
+	int n;
+	unordered_multimap<char, shared_ptr<AutNode>> childs;
+};
+
+void outAut(AutNode *autNode)
+{
+	unordered_set<AutNode *> processed;
+
+	vector<AutNode *> layer(1, autNode);
+	vector<AutNode *> nextLayer;
+	while (!layer.empty())
+	{
+		nextLayer.clear();
+		for (auto l : layer)
+		{			
+			cout << l->n;
+			for (auto &kv : l->childs)
+			{
+				if (kv.first == '\0')
+				{
+					cout << "#";
+				}
+				else
+				{
+					cout << kv.first;
+				}
+				cout << "->" << kv.second->n;
+				if (!processed.count(kv.second.get()))
+				{
+					nextLayer.push_back(kv.second.get());
+					processed.insert(kv.second.get());
+				}
+			}
+			cout << endl;			
+		}
+		layer = nextLayer;
+	}
+}
+
+void findAllLeaves(AutNode *autNode, vector<AutNode *> &leaves, unordered_set<AutNode *> &processed)
+{
+	if (processed.count(autNode))
+	{
+		return;
+	}
+	else
+	{
+		processed.insert(autNode);
+	}	
+	if (autNode->childs.empty())
+	{
+		leaves.push_back(autNode);
+	}
+	else
+	{
+		for (auto &kv : autNode->childs)
+		{
+			findAllLeaves(kv.second.get(), leaves, processed);
+		}
+	}
+}
+
+shared_ptr<AutNode> buildNonDetAut(Regular *node)
+{
+	switch (node->op)
+	{
+	case Operation::CHARACTER:
+	{
+		shared_ptr<AutNode> autNode = make_shared<AutNode>();
+		autNode->childs.insert(make_pair(node->c, make_shared<AutNode>()));
+		return autNode;
+	}
+	case Operation::UNION:
+	{
+		auto left = buildNonDetAut(node->lNode.get());
+		auto right = buildNonDetAut(node->rNode.get());
+		left->childs.insert(make_pair('\0', right));
+		return left;
+	}
+	case Operation::CONCATENATION:
+	{
+		auto left = buildNonDetAut(node->lNode.get());
+		auto right = buildNonDetAut(node->rNode.get());
+		vector<AutNode *> leaves;
+		unordered_set<AutNode *> processed;
+		findAllLeaves(left.get(), leaves, processed);
+		for (auto &leave : leaves)
+		{
+			leave->childs.insert(make_pair('\0', right));
+		}
+		return left;
+	}
+	case Operation::WILDCARD:
+	{
+		auto left = buildNonDetAut(node->lNode.get());
+		vector<AutNode *> leaves;
+		unordered_set<AutNode *> processed;
+		findAllLeaves(left.get(), leaves, processed);
+		for (auto &leave : leaves)
+		{
+			leave->childs.insert(make_pair('\0', left));
+			leave->childs.insert(make_pair('\0', make_shared<AutNode>()));
+		}
+		return left;
+	}
+	default:
+		cout << "Unknown regular exp node" << endl;
+		break;
+	}
+	return shared_ptr<AutNode>(nullptr);
+}
+
 int countStrings(string r, int l) {
 	shared_ptr<Regular> root;
 	vector<shared_ptr<Regular>> stack;
@@ -56,7 +177,7 @@ int countStrings(string r, int l) {
 				if (op == Operation::WILDCARD)
 				{
 					prev->op = op;
-					last->lNode = prev;
+					prev->lNode = last;
 					stack.push_back(prev);
 				} 
 				else if (prev->op != Operation::UNKNOWN)
@@ -80,12 +201,15 @@ int countStrings(string r, int l) {
 				opStack.push_back(Operation::WILDCARD);
 				break;
 			default:
+				cout << "Unknown character!" << endl;
 				break;
 			}
 		}		
 	}
 
 	root = stack.front();
+	auto nonDetAut = buildNonDetAut(root.get());
+	outAut(nonDetAut.get());
 	return 0;
 }
 
