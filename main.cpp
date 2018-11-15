@@ -25,16 +25,18 @@ struct Regular
 
 struct AutNode
 {
-	AutNode()
-	{
-		static int i = 0;
+	static int i;
+	AutNode(bool aEndNode) : endNode(aEndNode)
+	{		
 		n = i;
 		++i;
 	}
-
 	int n;
 	unordered_multimap<char, shared_ptr<AutNode>> childs;
+	bool endNode;
 };
+
+int AutNode::i = 0;
 
 void outAut(AutNode *autNode)
 {
@@ -47,7 +49,7 @@ void outAut(AutNode *autNode)
 		nextLayer.clear();
 		for (auto l : layer)
 		{			
-			cout << l->n;
+			cout << l->n << (l->endNode ? "e" : "") << ":";
 			for (auto &kv : l->childs)
 			{
 				if (kv.first == '\0')
@@ -69,6 +71,105 @@ void outAut(AutNode *autNode)
 		}
 		layer = nextLayer;
 	}
+}
+
+set<AutNode *> epsilonClosure(set<AutNode *> nodes)
+{
+	set<AutNode *> result;
+	result.insert(nodes.begin(), nodes.end());	
+	set<AutNode *> newNodes(result);
+	while (!newNodes.empty())
+	{
+		set<AutNode *> currentNodes;
+		swap(newNodes, currentNodes);
+
+		for (auto node : currentNodes)
+		{
+			for (auto &kv : node->childs)
+			{
+				if (kv.first == '\0' && !result.count(kv.second.get()))
+				{
+					result.insert(kv.second.get());
+					newNodes.insert(kv.second.get());
+				}
+			}
+		}
+	}
+	return result;
+}
+
+set<AutNode *> moveTo(set<AutNode *> nodes, char c)
+{
+	set<AutNode *> res;
+
+	for (auto node : nodes)
+	{
+		for (auto &kv : node->childs)
+		{
+			if (kv.first == c)
+			{
+				res.insert(kv.second.get());
+			}
+		}
+	}
+
+	return res;
+}
+
+shared_ptr<AutNode> convertToDetAut(AutNode *node, vector<int> &endNodes)
+{	
+	map<set<AutNode *>, shared_ptr<AutNode>> allNodes;
+	map<set<AutNode *>, shared_ptr<AutNode>> unprocessedNodes;
+	map<set<AutNode *>, shared_ptr<AutNode>> processedNodes;
+	
+	auto closure = epsilonClosure(std::set<AutNode *>({ node }));
+	auto it = find_if(closure.begin(), closure.end(), [](AutNode *nod)
+	{
+		return nod->endNode == true;
+	});
+	auto root = make_shared<AutNode>(it != closure.end());
+	if (root->endNode)
+	{
+		endNodes.push_back(root->n);
+	}
+	unprocessedNodes.insert(make_pair(closure, root));
+	
+	allNodes = unprocessedNodes;
+	while (!unprocessedNodes.empty())
+	{
+		map<set<AutNode *>, shared_ptr<AutNode>> newNodes;
+		for (auto &kv : unprocessedNodes)
+		{
+			for (char c : vector<char>({ 'a', 'b' }))
+			{
+				auto closure = epsilonClosure(moveTo(kv.first, c));
+				if (!closure.empty())
+				{
+					auto findIt = allNodes.find(closure);
+					if (findIt == allNodes.end())
+					{
+						auto it = find_if(closure.begin(), closure.end(), [](AutNode *nod) 
+						{
+							return nod->endNode == true;
+						});
+						auto newNode = make_shared<AutNode>(it != closure.end());
+						if (newNode->endNode)
+						{
+							endNodes.push_back(newNode->n);
+						}
+						findIt = newNodes.insert(make_pair(closure, newNode)).first;
+						allNodes.insert(*findIt);
+					}
+
+					kv.second->childs.insert(make_pair(c, findIt->second));
+				}
+			}
+		}
+
+		processedNodes.insert(unprocessedNodes.begin(), unprocessedNodes.end());
+		unprocessedNodes = newNodes;
+	}
+	return root;
 }
 
 void findAllLeaves(AutNode *autNode, vector<AutNode *> &leaves, unordered_set<AutNode *> &processed)
@@ -94,27 +195,27 @@ void findAllLeaves(AutNode *autNode, vector<AutNode *> &leaves, unordered_set<Au
 	}
 }
 
-shared_ptr<AutNode> buildNonDetAut(Regular *node)
+shared_ptr<AutNode> buildNonDetAut(Regular *node, bool endNode)
 {
 	switch (node->op)
 	{
 	case Operation::CHARACTER:
 	{
-		shared_ptr<AutNode> autNode = make_shared<AutNode>();
-		autNode->childs.insert(make_pair(node->c, make_shared<AutNode>()));
+		shared_ptr<AutNode> autNode = make_shared<AutNode>(false);
+		autNode->childs.insert(make_pair(node->c, make_shared<AutNode>(endNode)));
 		return autNode;
 	}
 	case Operation::UNION:
 	{
-		auto left = buildNonDetAut(node->lNode.get());
-		auto right = buildNonDetAut(node->rNode.get());
+		auto left = buildNonDetAut(node->lNode.get(), endNode);
+		auto right = buildNonDetAut(node->rNode.get(), endNode);
 		left->childs.insert(make_pair('\0', right));
 		return left;
 	}
 	case Operation::CONCATENATION:
 	{
-		auto left = buildNonDetAut(node->lNode.get());
-		auto right = buildNonDetAut(node->rNode.get());
+		auto left = buildNonDetAut(node->lNode.get(), false);
+		auto right = buildNonDetAut(node->rNode.get(), endNode);
 		vector<AutNode *> leaves;
 		unordered_set<AutNode *> processed;
 		findAllLeaves(left.get(), leaves, processed);
@@ -126,14 +227,16 @@ shared_ptr<AutNode> buildNonDetAut(Regular *node)
 	}
 	case Operation::WILDCARD:
 	{
-		auto left = buildNonDetAut(node->lNode.get());
+		auto left = buildNonDetAut(node->lNode.get(), endNode);
 		vector<AutNode *> leaves;
 		unordered_set<AutNode *> processed;
 		findAllLeaves(left.get(), leaves, processed);
+		left->endNode = endNode;
 		for (auto &leave : leaves)
 		{
 			leave->childs.insert(make_pair('\0', left));
-			leave->childs.insert(make_pair('\0', make_shared<AutNode>()));
+			leave->childs.insert(make_pair('\0', make_shared<AutNode>(endNode)));
+			left->childs.insert(make_pair('\0', leave));
 		}
 		return left;
 	}
@@ -143,6 +246,46 @@ shared_ptr<AutNode> buildNonDetAut(Regular *node)
 	}
 	return shared_ptr<AutNode>(nullptr);
 }
+
+void formTraverseMatrix(AutNode *node, vector<vector<int>> &res)
+{
+	unordered_set<AutNode *> processedNodes;
+	unordered_set<AutNode *> newNodes({ node });
+	while (!newNodes.empty())
+	{
+		unordered_set<AutNode *> curNodes;
+		swap(curNodes, newNodes);
+		for (auto &node : curNodes)
+		{
+			if (!processedNodes.count(node))
+			{
+				processedNodes.insert(node);
+				for (auto &kv : node->childs)
+				{				
+					++res[node->n][kv.second->n];
+
+					newNodes.insert(kv.second.get());				
+				}
+			}
+		}
+	}	
+}
+
+void multiplyMatrix(const vector<vector<int>> &l, const vector<vector<int>> &r, vector<vector<int>> &res)
+{
+	for (int i = 0; i < l.size(); ++i)
+	{
+		for (int j = 0; j < l[i].size(); ++j)
+		{
+			res[i][j] = 0;
+			for (int k = 0; k < r[i].size(); ++k)
+			{
+				res[i][j] += l[i][k] * r[k][j];
+			}
+		}
+	}
+}
+
 
 int countStrings(string r, int l) {
 	shared_ptr<Regular> root;
@@ -160,20 +303,13 @@ int countStrings(string r, int l) {
 			{
 			case '(':
 				stack.push_back(make_shared<Regular>('\0', Operation::UNKNOWN));
+				opStack.push_back(Operation::CONCATENATION);
 				break;
 			case ')':
 			{
 				auto last = stack.back(); stack.pop_back();
 				auto prev = stack.back(); stack.pop_back();
-				Operation op;
-				if (opStack.empty())
-				{
-					op = Operation::CONCATENATION;
-				}
-				else
-				{
-					op = opStack.back(); opStack.pop_back();
-				}
+				Operation op = opStack.back(); opStack.pop_back();
 				if (op == Operation::WILDCARD)
 				{
 					prev->op = op;
@@ -195,10 +331,10 @@ int countStrings(string r, int l) {
 				break;
 			}
 			case '|':
-				opStack.push_back(Operation::UNION);
+				opStack.back() = Operation::UNION;
 				break;
 			case '*':
-				opStack.push_back(Operation::WILDCARD);
+				opStack.back() = Operation::WILDCARD;
 				break;
 			default:
 				cout << "Unknown character!" << endl;
@@ -208,9 +344,47 @@ int countStrings(string r, int l) {
 	}
 
 	root = stack.front();
-	auto nonDetAut = buildNonDetAut(root.get());
+	AutNode::i = 0;
+	auto nonDetAut = buildNonDetAut(root.get(), true);
 	outAut(nonDetAut.get());
-	return 0;
+	cout << endl;
+	AutNode::i = 0;
+	vector<int> endNodes;
+	auto detAut = convertToDetAut(nonDetAut.get(), endNodes);
+	outAut(detAut.get());
+
+	vector<vector<int>> traverseMatrix(AutNode::i);
+	for (auto &v : traverseMatrix)
+	{
+		v.resize(AutNode::i);
+	}	
+
+	formTraverseMatrix(detAut.get(), traverseMatrix);
+
+	auto res = traverseMatrix;
+	for (int i = 1; i < l; ++i)
+	{
+		auto cur = res;
+		multiplyMatrix(cur, traverseMatrix, res);
+	}
+
+	int result = 0;
+	for (int good : endNodes)
+	{
+		result += res[0][good];
+	}
+
+	cout << endl;
+	for (auto &v : res)
+	{
+		for (auto i : v)
+		{
+			cout << i << " ";
+		}
+		cout << endl;
+	}
+
+	return result;
 }
 
 int main()
