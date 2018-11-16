@@ -4,6 +4,55 @@ using namespace std;
 
 vector<string> split_string(string);
 
+long long modulo = 1000000007;
+
+vector<vector<long long>> multiplyMatrix(const vector<vector<long long>> &l, const vector<vector<long long>> &r)
+{
+	vector<vector<long long>> res(l.size());
+	for (int i = 0; i < l.size(); ++i)
+	{
+		res[i].resize(l[i].size());
+	}
+
+	for (int i = 0; i < l.size(); ++i)
+	{
+		for (int j = 0; j < l[i].size(); ++j)
+		{
+			for (int k = 0; k < r[i].size(); ++k)
+			{
+				res[i][j] += (l[i][k] * r[k][j]) % modulo;
+				res[i][j] %= modulo;
+			}
+		}
+	}
+	return res;
+}
+
+vector<vector<long long>> squatingMatrixPow(vector<vector<long long>> mat, int power)
+{
+	vector<vector<long long>> y(mat.size());
+	for (int i = 0; i < mat.size(); ++i)
+	{
+		y[i].resize(mat[i].size());
+		y[i][i] = 1;
+	}
+
+	while (power > 1)
+	{
+		if (power & 1)
+		{
+			y = multiplyMatrix(y, mat);
+			mat = multiplyMatrix(mat, mat);
+		}
+		else
+		{
+			mat = multiplyMatrix(mat, mat);
+		}
+		power = power >> 1;
+	}
+	return multiplyMatrix(mat, y);
+}
+
 enum class Operation : int
 {
 	UNKNOWN,
@@ -207,13 +256,16 @@ shared_ptr<AutNode> buildNonDetAut(Regular *node, bool endNode)
 	}
 	case Operation::UNION:
 	{
+		shared_ptr<AutNode> un = make_shared<AutNode>(false);
 		auto left = buildNonDetAut(node->lNode.get(), endNode);
 		auto right = buildNonDetAut(node->rNode.get(), endNode);
-		left->childs.insert(make_pair('\0', right));
-		return left;
+		un->childs.insert(make_pair('\0', right));
+		un->childs.insert(make_pair('\0', left));
+		return un;
 	}
 	case Operation::CONCATENATION:
 	{
+		shared_ptr<AutNode> un = make_shared<AutNode>(false);
 		auto left = buildNonDetAut(node->lNode.get(), false);
 		auto right = buildNonDetAut(node->rNode.get(), endNode);
 		vector<AutNode *> leaves;
@@ -223,7 +275,8 @@ shared_ptr<AutNode> buildNonDetAut(Regular *node, bool endNode)
 		{
 			leave->childs.insert(make_pair('\0', right));
 		}
-		return left;
+		un->childs.insert(make_pair('\0', left));
+		return un;
 	}
 	case Operation::WILDCARD:
 	{
@@ -247,7 +300,7 @@ shared_ptr<AutNode> buildNonDetAut(Regular *node, bool endNode)
 	return shared_ptr<AutNode>(nullptr);
 }
 
-void formTraverseMatrix(AutNode *node, vector<vector<int>> &res)
+void formTraverseMatrix(AutNode *node, vector<vector<long long>> &res)
 {
 	unordered_set<AutNode *> processedNodes;
 	unordered_set<AutNode *> newNodes({ node });
@@ -270,22 +323,6 @@ void formTraverseMatrix(AutNode *node, vector<vector<int>> &res)
 		}
 	}	
 }
-
-void multiplyMatrix(const vector<vector<int>> &l, const vector<vector<int>> &r, vector<vector<int>> &res)
-{
-	for (int i = 0; i < l.size(); ++i)
-	{
-		for (int j = 0; j < l[i].size(); ++j)
-		{
-			res[i][j] = 0;
-			for (int k = 0; k < r[i].size(); ++k)
-			{
-				res[i][j] += l[i][k] * r[k][j];
-			}
-		}
-	}
-}
-
 
 int countStrings(string r, int l) {
 	shared_ptr<Regular> root;
@@ -320,8 +357,8 @@ int countStrings(string r, int l) {
 				{
 					auto node = stack.back(); stack.pop_back();
 					node->op = op;
-					node->lNode = last;
-					node->rNode = prev;
+					node->lNode = prev;
+					node->rNode = last;
 					stack.push_back(node);
 				}
 				else
@@ -353,7 +390,7 @@ int countStrings(string r, int l) {
 	auto detAut = convertToDetAut(nonDetAut.get(), endNodes);
 	outAut(detAut.get());
 
-	vector<vector<int>> traverseMatrix(AutNode::i);
+	vector<vector<long long>> traverseMatrix(AutNode::i);
 	for (auto &v : traverseMatrix)
 	{
 		v.resize(AutNode::i);
@@ -361,17 +398,13 @@ int countStrings(string r, int l) {
 
 	formTraverseMatrix(detAut.get(), traverseMatrix);
 
-	auto res = traverseMatrix;
-	for (int i = 1; i < l; ++i)
-	{
-		auto cur = res;
-		multiplyMatrix(cur, traverseMatrix, res);
-	}
+	auto res = squatingMatrixPow(traverseMatrix, l);
 
-	int result = 0;
+	long long result = 0;
 	for (int good : endNodes)
 	{
 		result += res[0][good];
+		result %= modulo;
 	}
 
 	cout << endl;
