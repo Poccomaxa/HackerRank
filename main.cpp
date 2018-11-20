@@ -12,24 +12,18 @@ struct TreeNode
 	int greaterChildCount = 0;
 	TreeNode *l = nullptr;
 	TreeNode *r = nullptr;
-
-	~TreeNode()
-	{
-		if (l)
-		{
-			delete l;
-			l = nullptr;
-		}
-
-		if (r)
-		{
-			delete r;
-			r = nullptr;
-		}
-	}
 };
 // Complete the insertionSort function below.
 long long insertionSort(vector<int> arr) {
+
+	if (is_sorted(arr.begin(), arr.end()))
+	{
+		return 0;
+	}
+	if (is_sorted(arr.rbegin(), arr.rend()))
+	{
+		return (arr.size() - 1) * (arr.size()) / 2;
+	}
 	long long res = 0;
 	TreeNode *root = new TreeNode(arr.front());
 
