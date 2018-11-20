@@ -4,89 +4,65 @@ using namespace std;
 
 vector<string> split_string(string);
 
-enum class Operation : int
+struct TreeNode
 {
-	UNKNOWN,
-	CHARACTER,
-	CONCATENATION,
-	UNION,
-	WILDCARD
-};
+	TreeNode(int aValue) : value(aValue) {}
+	int value;
+	int count = 1;
+	int greaterChildCount = 0;
+	TreeNode *l = nullptr;
+	TreeNode *r = nullptr;
 
-struct Regular
-{
-	Regular(char aC, Operation aOp) : c(aC), op(aOp) {}
-	char c;
-	Operation op;
-
-	shared_ptr<Regular> lNode;
-	shared_ptr<Regular> rNode;
-};
-
-int countStrings(string r, int l) {
-	shared_ptr<Regular> root;
-	vector<shared_ptr<Regular>> stack;
-	vector<Operation> opStack;
-	for (char c : r)
+	~TreeNode()
 	{
-		if (isalpha(c))
+		if (l)
 		{
-			stack.push_back(make_shared<Regular>(c, Operation::CHARACTER));
+			delete l;
+			l = nullptr;
 		}
-		else
-		{
-			switch (c)
-			{
-			case '(':
-				stack.push_back(make_shared<Regular>('\0', Operation::UNKNOWN));
-				break;
-			case ')':
-			{
-				auto last = stack.back(); stack.pop_back();
-				auto prev = stack.back(); stack.pop_back();
-				Operation op;
-				if (opStack.empty())
-				{
-					op = Operation::CONCATENATION;
-				}
-				else
-				{
-					op = opStack.back(); opStack.pop_back();
-				}
-				if (op == Operation::WILDCARD)
-				{
-					prev->op = op;
-					last->lNode = prev;
-					stack.push_back(prev);
-				} 
-				else if (prev->op != Operation::UNKNOWN)
-				{
-					auto node = stack.back(); stack.pop_back();
-					node->op = op;
-					node->lNode = last;
-					node->rNode = prev;
-					stack.push_back(node);
-				}
-				else
-				{
-					stack.push_back(last);
-				}
-				break;
-			}
-			case '|':
-				opStack.push_back(Operation::UNION);
-				break;
-			case '*':
-				opStack.push_back(Operation::WILDCARD);
-				break;
-			default:
-				break;
-			}
-		}		
-	}
 
-	root = stack.front();
-	return 0;
+		if (r)
+		{
+			delete r;
+			r = nullptr;
+		}
+	}
+};
+// Complete the insertionSort function below.
+long long insertionSort(vector<int> arr) {
+	long long res = 0;
+	TreeNode *root = new TreeNode(arr.front());
+
+	for (auto it = arr.begin() + 1; it != arr.end(); ++it)
+	{
+		TreeNode **curNode = &root;
+		while (*curNode != nullptr)
+		{
+			if (*it < (*curNode)->value)
+			{
+				res += (*curNode)->count + (*curNode)->greaterChildCount;
+				curNode = &(*curNode)->l;				
+			}
+			else if (*it > (*curNode)->value)
+			{
+				++(*curNode)->greaterChildCount;
+				curNode = &(*curNode)->r;
+			}
+			else
+			{
+				res += (*curNode)->greaterChildCount;
+				++(*curNode)->count;
+				break;
+			}
+		}
+
+		if (*curNode == nullptr)
+		{
+			*curNode = new TreeNode(*it);
+		}
+	}
+	delete root;
+	return res;
 }
 
 int main()
@@ -98,16 +74,24 @@ int main()
 	cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
 	for (int t_itr = 0; t_itr < t; t_itr++) {
-		string rl_temp;
-		getline(cin, rl_temp);
+		int n;
+		cin >> n;
+		cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-		vector<string> rl = split_string(rl_temp);
+		string arr_temp_temp;
+		getline(cin, arr_temp_temp);
 
-		string r = rl[0];
+		vector<string> arr_temp = split_string(arr_temp_temp);
 
-		int l = stoi(rl[1]);
+		vector<int> arr(n);
 
-		int result = countStrings(r, l);
+		for (int i = 0; i < n; i++) {
+			int arr_item = stoi(arr_temp[i]);
+
+			arr[i] = arr_item;
+		}
+
+		long long result = insertionSort(arr);
 
 		fout << result << "\n";
 	}
