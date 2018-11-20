@@ -4,175 +4,54 @@ using namespace std;
 
 vector<string> split_string(string);
 
-void addWithMedianSave(multiset<int> &sorted, multiset<int>::iterator &medianl, multiset<int>::iterator &medianr, int value)
+// Complete the lilysHomework function below.
+int lilysHomework(vector<int> arr) 
 {
-	auto fresh = sorted.insert(value);
-	if (medianl == sorted.end())
+	vector<int> indeces(arr.size());
+	iota(indeces.begin(), indeces.end(), 0);
+	sort(indeces.begin(), indeces.end(), [&arr](int l, int r)
 	{
-		medianl = fresh;
-	}
-	// Newly inserted is even
-	else if (medianr == sorted.end())
-	{
-		if (value < *medianl)
-		{
-			medianr = medianl;
-			--medianl;
-		}
-		else
-		{
-			medianr = medianl;
-			++medianr;
-		}
-	}
-	else
-	{
-		if (value < *medianl)
-		{
-			medianr = sorted.end();
-		}
-		else if (value >= *medianr)
-		{
-			medianl = medianr;
-			medianr = sorted.end();
-		}
-		else
-		{
-			medianl = fresh;
-			medianr = sorted.end();
-		}
-	}
-}
-
-void removeWithMedianSave(multiset<int> &sorted, multiset<int>::iterator &medianl, multiset<int>::iterator &medianr, int value)
-{
-	auto removing = sorted.find(value);
-	if (medianr == sorted.end())
-	{
-		if (value < *medianl)
-		{
-			medianr = medianl;
-			++medianr;
-		}
-		else if (value > *medianl)
-		{
-			medianr = medianl;
-			--medianl;
-		}
-		else
-		{
-			if (medianl == removing)
-			{
-				medianr = medianl;
-				--medianl;
-				++medianr;
-			}
-			else
-			{
-				medianr = medianl;
-				++medianr;
-			}
-		}
-	}
-	else
-	{
-		if (value <= *medianl)
-		{
-			medianl = medianr;
-			medianr = sorted.end();
-		}
-		else if (value >= *medianr)
-		{
-			medianr = sorted.end();
-		}
-	}
-	sorted.erase(removing);
-}
-
-// Complete the activityNotifications function below.
-int activityNotifications(vector<int> expenditure, int d) 
-{
-	multiset<int> sorted;
-	auto medianl = sorted.end();
-	auto medianr = sorted.end();
-	int res = 0;
-	deque<int> trailing;
-
-	for (int i = 0; i < expenditure.size(); ++i)
-	{
-		int value = expenditure[i];
-		if (trailing.size() >= d)
-		{
-			int median = *medianl;
-			if (medianr != sorted.end())
-			{
-				median += *medianr;
-			}
-			else
-			{
-				median *= 2;
-			}
-			if (value >= median)
-			{
-				++res;
-			}
-		}
-
-		trailing.push_back(value);
-
-		addWithMedianSave(sorted, medianl, medianr, value);
-
-		while (trailing.size() > d)
-		{
-			removeWithMedianSave(sorted, medianl, medianr, trailing.front());
-			trailing.pop_front();
-		}
-
-		if (medianl != sorted.end())
-		{
-			cout << *medianl << " ";
-		}
-
-		if (medianr != sorted.end())
-		{
-			cout << *medianr;
-		}
-
-		cout << endl;
-
-		
-	}
+		return arr[l] < arr[r];
+	});
 	
-	return res;
+	int swapsForward = 0;
+	int swapsBackward = 0;
+	vector<int> barr(arr);
+	for (int i = 0; i < indeces.size(); ++i)
+	{
+		swap()
+		swapsForward += i != indeces[i];
+		int back = indeces.size() - i - 1;
+		swapsBackward += i != indeces[indeces.size() - i - 1];
+	}	
+
+	int swaps = min(swapsForward, swapsBackward);
+
+	return swaps / 2 + (swaps & 1);
 }
 
 int main()
 {
 	ofstream fout(getenv("OUTPUT_PATH"));
 
-	string nd_temp;
-	getline(cin, nd_temp);
+	int n;
+	cin >> n;
+	cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-	vector<string> nd = split_string(nd_temp);
+	string arr_temp_temp;
+	getline(cin, arr_temp_temp);
 
-	int n = stoi(nd[0]);
+	vector<string> arr_temp = split_string(arr_temp_temp);
 
-	int d = stoi(nd[1]);
-
-	string expenditure_temp_temp;
-	getline(cin, expenditure_temp_temp);
-
-	vector<string> expenditure_temp = split_string(expenditure_temp_temp);
-
-	vector<int> expenditure(n);
+	vector<int> arr(n);
 
 	for (int i = 0; i < n; i++) {
-		int expenditure_item = stoi(expenditure_temp[i]);
+		int arr_item = stoi(arr_temp[i]);
 
-		expenditure[i] = expenditure_item;
+		arr[i] = arr_item;
 	}
 
-	int result = activityNotifications(expenditure, d);
+	int result = lilysHomework(arr);
 
 	fout << result << "\n";
 
