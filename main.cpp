@@ -2,109 +2,210 @@
 
 using namespace std;
 
-void chooseFrom(const string &from, int &index, list<int> &seq, string &res)
+vector<string> split_string(string);
+
+void addWithMedianSave(multiset<int> &sorted, multiset<int>::iterator &medianl, multiset<int>::iterator &medianr, int value)
 {
-	res.push_back(from[index]);
-	++index;
-	if (!seq.empty())
+	auto fresh = sorted.insert(value);
+	if (medianl == sorted.end())
 	{
-		--seq.front();
-		if (seq.front() == 0)
+		medianl = fresh;
+	}
+	// Newly inserted is even
+	else if (medianr == sorted.end())
+	{
+		if (value < *medianl)
 		{
-			seq.pop_front();
+			medianr = medianl;
+			--medianl;
+		}
+		else
+		{
+			medianr = medianl;
+			++medianr;
+		}
+	}
+	else
+	{
+		if (value < *medianl)
+		{
+			medianr = sorted.end();
+		}
+		else if (value >= *medianr)
+		{
+			medianl = medianr;
+			medianr = sorted.end();
+		}
+		else
+		{
+			medianl = fresh;
+			medianr = sorted.end();
 		}
 	}
 }
 
-void choose(const string &a, const string &b, char compi, char compj, int &chosi, int &chosj, list<int> &lowSeqI, list<int> &lowSeqJ, string &res, function<void()> fallback)
+void removeWithMedianSave(multiset<int> &sorted, multiset<int>::iterator &medianl, multiset<int>::iterator &medianr, int value)
 {
-	if (compi < compj)
+	auto removing = sorted.find(value);
+	if (medianr == sorted.end())
 	{
-		chooseFrom(a, chosi, lowSeqI, res);
-	}
-	else if (compi > compj)
-	{
-		chooseFrom(b, chosj, lowSeqJ, res);
+		if (value < *medianl)
+		{
+			medianr = medianl;
+			++medianr;
+		}
+		else if (value > *medianl)
+		{
+			medianr = medianl;
+			--medianl;
+		}
+		else
+		{
+			if (medianl == removing)
+			{
+				medianr = medianl;
+				--medianl;
+				++medianr;
+			}
+			else
+			{
+				medianr = medianl;
+				++medianr;
+			}
+		}
 	}
 	else
 	{
-		fallback();
+		if (value <= *medianl)
+		{
+			medianl = medianr;
+			medianr = sorted.end();
+		}
+		else if (value >= *medianr)
+		{
+			medianr = sorted.end();
+		}
 	}
+	sorted.erase(removing);
 }
 
-// Complete the morganAndString function below.
-string morganAndString(string a, string b) {
-	string res;
-	int i = 0;
-	int j = 0;
-	int ii = i;
-	int jj = j;
-	char ai;
-	char bj;
-	list<int> lowSeqI;
-	list<int> lowSeqJ;
+// Complete the activityNotifications function below.
+int activityNotifications(vector<int> expenditure, int d) 
+{
+	multiset<int> sorted;
+	auto medianl = sorted.end();
+	auto medianr = sorted.end();
+	int res = 0;
+	deque<int> trailing;
 
-	while (i < a.size() && j < b.size())
+	for (int i = 0; i < expenditure.size(); ++i)
 	{
-		choose(a, b, a[i], b[j], i, j, lowSeqI, lowSeqJ, res, [&]()
+		int value = expenditure[i];
+		if (trailing.size() >= d)
 		{
-			char prevai = a[i];
-			if (!(ii > i && jj > j) || lowSeqI.size() != lowSeqJ.size())
+			int median = *medianl;
+			if (medianr != sorted.end())
 			{
-				lowSeqI.clear();
-				ii = i + 1;
-				jj = j + 1;
-				lowSeqI.push_back(1);
-				ai = ii < a.size() ? a[ii] : b[ii - a.size() + j];
-				bj = jj < b.size() ? b[jj] : a[jj - b.size() + i];
-				while ((ii < a.size() || jj < b.size()) && ai == bj)
-				{
-					if (ai > prevai)
-					{
-						lowSeqI.push_back(0);
-					}
-					prevai = ai;
-					++ii;
-					++jj;
-					++lowSeqI.back();
-
-					ai = ii < a.size() ? a[ii] : b[ii - a.size() + j];
-					bj = jj < b.size() ? b[jj] : a[jj - b.size() + i];
-				}
-				lowSeqJ = lowSeqI;
+				median += *medianr;
 			}
-
-			choose(a, b, ai, bj, i, j, lowSeqI, lowSeqJ, res, [&]()
+			else
 			{
-				chooseFrom(a, i, lowSeqI, res);
-			});
-		});
-	}
+				median *= 2;
+			}
+			if (value >= median)
+			{
+				++res;
+			}
+		}
 
-	return res + a.substr(i, a.size()) + b.substr(j, b.size());
+		trailing.push_back(value);
+
+		addWithMedianSave(sorted, medianl, medianr, value);
+
+		while (trailing.size() > d)
+		{
+			removeWithMedianSave(sorted, medianl, medianr, trailing.front());
+			trailing.pop_front();
+		}
+
+		if (medianl != sorted.end())
+		{
+			cout << *medianl << " ";
+		}
+
+		if (medianr != sorted.end())
+		{
+			cout << *medianr;
+		}
+
+		cout << endl;
+
+		
+	}
+	
+	return res;
 }
 
 int main()
 {
 	ofstream fout(getenv("OUTPUT_PATH"));
 
-	int t;
-	cin >> t;
-	cin.ignore(numeric_limits<streamsize>::max(), '\n');
+	string nd_temp;
+	getline(cin, nd_temp);
 
-	for (int t_itr = 0; t_itr < t; t_itr++) {
-		string a;
-		getline(cin, a);
+	vector<string> nd = split_string(nd_temp);
 
-		string b;
-		getline(cin, b);
+	int n = stoi(nd[0]);
 
-		string result = morganAndString(a, b);
+	int d = stoi(nd[1]);
 
-		fout << result << "\n";
+	string expenditure_temp_temp;
+	getline(cin, expenditure_temp_temp);
+
+	vector<string> expenditure_temp = split_string(expenditure_temp_temp);
+
+	vector<int> expenditure(n);
+
+	for (int i = 0; i < n; i++) {
+		int expenditure_item = stoi(expenditure_temp[i]);
+
+		expenditure[i] = expenditure_item;
 	}
+
+	int result = activityNotifications(expenditure, d);
+
+	fout << result << "\n";
 
 	fout.close();
 
 	return 0;
+}
+
+vector<string> split_string(string input_string) {
+	string::iterator new_end = unique(input_string.begin(), input_string.end(), [](const char &x, const char &y) {
+		return x == y && x == ' ';
+	});
+
+	input_string.erase(new_end, input_string.end());
+
+	while (input_string[input_string.length() - 1] == ' ') {
+		input_string.pop_back();
+	}
+
+	vector<string> splits;
+	char delimiter = ' ';
+
+	size_t i = 0;
+	size_t pos = input_string.find(delimiter);
+
+	while (pos != string::npos) {
+		splits.push_back(input_string.substr(i, pos - i));
+
+		i = pos + 1;
+		pos = input_string.find(delimiter, i);
+	}
+
+	splits.push_back(input_string.substr(i, min(pos, input_string.length()) - i + 1));
+
+	return splits;
 }
