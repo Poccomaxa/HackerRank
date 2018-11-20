@@ -17,4 +17,9 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerEnvironment>OUTPUT_PATH=io/output.txt</LocalDebuggerEnvironment>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LocalDebuggerCommandArguments>&lt; io/input.txt &gt; io/console.txt</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerEnvironment>OUTPUT_PATH=io/output.txt</LocalDebuggerEnvironment>
+  </PropertyGroup>
 </Project>
