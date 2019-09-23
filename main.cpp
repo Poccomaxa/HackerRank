@@ -1,87 +1,83 @@
 #include <bits/stdc++.h>
+#include <functional>
+#include <numeric>
 
 using namespace std;
 
-void chooseFrom(const string &from, int &index, list<int> &seq, string &res)
+vector<string> split_string(string);
+vector<pair<int, int>> moveDirs{ { -1, 0 },{ 1, 0 },{ 0, -1 },{ 0, 1 } };
+
+bool checkCell(const vector<string> &matrix, const pair<int, int> pos, function<bool(char)> predicate)
 {
-	res.push_back(from[index]);
-	++index;
-	if (!seq.empty())
+	if (pos.first < 0 || pos.first >= matrix.size())
 	{
-		--seq.front();
-		if (seq.front() == 0)
+		return false;
+	}
+	if (pos.second < 0 || pos.second >= matrix[pos.first].size())
+	{
+		return false;
+	}
+	return predicate(matrix[pos.first][pos.second]);
+}
+
+vector<pair<int, int>> countWays(const vector<string> &matrix, const pair<int, int> &pos)
+{
+	vector<pair<int, int>> res;
+	return accumulate(moveDirs.cbegin(), moveDirs.cend(), res,
+		[&matrix, &pos](vector<pair<int, int>> &value, const pair<int, int> &dir)
+	{
+		pair<int, int> nextCell = { pos.first + dir.first, pos.second + dir.second };
+		if (checkCell(matrix, nextCell,
+			[](char c) { return c == '.' || c == '*'; }))
 		{
-			seq.pop_front();
+			value.push_back(nextCell);
+		}
+		return value;
+	});
+}
+// Complete the countLuck function below.
+string countLuck(vector<string> matrix, int k)
+{
+	vector<vector<int>> junctionsCount(matrix.size(), vector<int>(matrix.front().size(), 0));
+	pair<int, int> startingPosition;
+	for (int i = 0; i < matrix.size(); ++i)
+	{
+		for (int j = 0; j < matrix[i].size(); ++j)
+		{
+			if (matrix[i][j] == 'M')
+			{
+				startingPosition = { i, j };
+				goto foundPos;
+			}
 		}
 	}
-}
-
-void choose(const string &a, const string &b, char compi, char compj, int &chosi, int &chosj, list<int> &lowSeqI, list<int> &lowSeqJ, string &res, function<void()> fallback)
-{
-	if (compi < compj)
+	foundPos:
+	set<pair<int, int>> pointsToProcess{ startingPosition };
+	while (!pointsToProcess.empty())
 	{
-		chooseFrom(a, chosi, lowSeqI, res);
-	}
-	else if (compi > compj)
-	{
-		chooseFrom(b, chosj, lowSeqJ, res);
-	}
-	else
-	{
-		fallback();
-	}
-}
-
-// Complete the morganAndString function below.
-string morganAndString(string a, string b) {
-	string res;
-	int i = 0;
-	int j = 0;
-	int ii = i;
-	int jj = j;
-	char ai;
-	char bj;
-	list<int> lowSeqI;
-	list<int> lowSeqJ;
-
-	while (i < a.size() && j < b.size())
-	{
-		choose(a, b, a[i], b[j], i, j, lowSeqI, lowSeqJ, res, [&]()
+		decltype(pointsToProcess) newPoints;
+		for (const auto &pos : pointsToProcess)
 		{
-			char prevai = a[i];
-			if (!(ii > i && jj > j) || lowSeqI.size() != lowSeqJ.size())
+			int currentJunctions = junctionsCount[pos.first][pos.second];
+			if (matrix[pos.first][pos.second] == '*')
 			{
-				lowSeqI.clear();
-				ii = i + 1;
-				jj = j + 1;
-				lowSeqI.push_back(1);
-				ai = ii < a.size() ? a[ii] : b[ii - a.size() + j];
-				bj = jj < b.size() ? b[jj] : a[jj - b.size() + i];
-				while ((ii < a.size() || jj < b.size()) && ai == bj)
-				{
-					if (ai > prevai)
-					{
-						lowSeqI.push_back(0);
-					}
-					prevai = ai;
-					++ii;
-					++jj;
-					++lowSeqI.back();
-
-					ai = ii < a.size() ? a[ii] : b[ii - a.size() + j];
-					bj = jj < b.size() ? b[jj] : a[jj - b.size() + i];
-				}
-				lowSeqJ = lowSeqI;
+				return currentJunctions == k ? "Impressed" : "Oops!";
 			}
 
-			choose(a, b, ai, bj, i, j, lowSeqI, lowSeqJ, res, [&]()
+			const auto &ways = countWays(matrix, pos);
+			int newJunctions = ways.size() > 1;
+			newPoints.insert(ways.begin(), ways.end());
+			for (const auto &way : ways)
 			{
-				chooseFrom(a, i, lowSeqI, res);
-			});
-		});
+				junctionsCount[way.first][way.second] = currentJunctions + newJunctions;
+				matrix[way.first][way.second] = matrix[way.first][way.second] == '*' ? '*' : 'X';
+			}
+		}
+
+		pointsToProcess = newPoints;
 	}
 
-	return res + a.substr(i, a.size()) + b.substr(j, b.size());
+	return "";
 }
 
 int main()
@@ -93,13 +89,29 @@ int main()
 	cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
 	for (int t_itr = 0; t_itr < t; t_itr++) {
-		string a;
-		getline(cin, a);
+		string nm_temp;
+		getline(cin, nm_temp);
 
-		string b;
-		getline(cin, b);
+		vector<string> nm = split_string(nm_temp);
 
-		string result = morganAndString(a, b);
+		int n = stoi(nm[0]);
+
+		int m = stoi(nm[1]);
+
+		vector<string> matrix(n);
+
+		for (int i = 0; i < n; i++) {
+			string matrix_item;
+			getline(cin, matrix_item);
+
+			matrix[i] = matrix_item;
+		}
+
+		int k;
+		cin >> k;
+		cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+		string result = countLuck(matrix, k);
 
 		fout << result << "\n";
 	}
@@ -107,4 +119,33 @@ int main()
 	fout.close();
 
 	return 0;
+}
+
+vector<string> split_string(string input_string) {
+	string::iterator new_end = unique(input_string.begin(), input_string.end(), [](const char &x, const char &y) {
+		return x == y && x == ' ';
+	});
+
+	input_string.erase(new_end, input_string.end());
+
+	while (input_string[input_string.length() - 1] == ' ') {
+		input_string.pop_back();
+	}
+
+	vector<string> splits;
+	char delimiter = ' ';
+
+	size_t i = 0;
+	size_t pos = input_string.find(delimiter);
+
+	while (pos != string::npos) {
+		splits.push_back(input_string.substr(i, pos - i));
+
+		i = pos + 1;
+		pos = input_string.find(delimiter, i);
+	}
+
+	splits.push_back(input_string.substr(i, min(pos, input_string.length()) - i + 1));
+
+	return splits;
 }
