@@ -1,108 +1,69 @@
 #include <bits/stdc++.h>
+#include <functional>
 
 using namespace std;
 
-void chooseFrom(const string &from, int &index, list<int> &seq, string &res)
+template<typename T>
+class GridMap
 {
-	res.push_back(from[index]);
-	++index;
-	if (!seq.empty())
+public:
+	GridMap(vector<vector<T>> &aMap) : map(aMap) {}
+
+	void forEach(std::function<void(typename vector<vector<T>>::iterator, typename vector<T>::iterator)> pred)
 	{
-		--seq.front();
-		if (seq.front() == 0)
+		for (auto cit = map.begin(); cit != map.end(); ++cit)
 		{
-			seq.pop_front();
+			for (auto it = cit->begin(); it != cit->end(); ++it)
+			{
+				pred(cit, it);
+			}
 		}
 	}
-}
 
-void choose(const string &a, const string &b, char compi, char compj, int &chosi, int &chosj, list<int> &lowSeqI, list<int> &lowSeqJ, string &res, function<void()> fallback)
-{
-	if (compi < compj)
+
+
+private:
+	vector<vector<T>> map;
+};
+
+// Complete the connectedCell function below.
+int connectedCell(vector<vector<int>> matrix) {
+	GridMap<int> map(matrix);
+
+	map.forEach([](auto cit, auto it)
 	{
-		chooseFrom(a, chosi, lowSeqI, res);
-	}
-	else if (compi > compj)
-	{
-		chooseFrom(b, chosj, lowSeqJ, res);
-	}
-	else
-	{
-		fallback();
-	}
-}
 
-// Complete the morganAndString function below.
-string morganAndString(string a, string b) {
-	string res;
-	int i = 0;
-	int j = 0;
-	int ii = i;
-	int jj = j;
-	char ai;
-	char bj;
-	list<int> lowSeqI;
-	list<int> lowSeqJ;
+	});
 
-	while (i < a.size() && j < b.size())
-	{
-		choose(a, b, a[i], b[j], i, j, lowSeqI, lowSeqJ, res, [&]()
-		{
-			char prevai = a[i];
-			if (!(ii > i && jj > j) || lowSeqI.size() != lowSeqJ.size())
-			{
-				lowSeqI.clear();
-				ii = i + 1;
-				jj = j + 1;
-				lowSeqI.push_back(1);
-				ai = ii < a.size() ? a[ii] : b[ii - a.size() + j];
-				bj = jj < b.size() ? b[jj] : a[jj - b.size() + i];
-				while ((ii < a.size() || jj < b.size()) && ai == bj)
-				{
-					if (ai > prevai)
-					{
-						lowSeqI.push_back(0);
-					}
-					prevai = ai;
-					++ii;
-					++jj;
-					++lowSeqI.back();
-
-					ai = ii < a.size() ? a[ii] : b[ii - a.size() + j];
-					bj = jj < b.size() ? b[jj] : a[jj - b.size() + i];
-				}
-				lowSeqJ = lowSeqI;
-			}
-
-			choose(a, b, ai, bj, i, j, lowSeqI, lowSeqJ, res, [&]()
-			{
-				chooseFrom(a, i, lowSeqI, res);
-			});
-		});
-	}
-
-	return res + a.substr(i, a.size()) + b.substr(j, b.size());
+	return 0;
 }
 
 int main()
 {
 	ofstream fout(getenv("OUTPUT_PATH"));
 
-	int t;
-	cin >> t;
+	int n;
+	cin >> n;
 	cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-	for (int t_itr = 0; t_itr < t; t_itr++) {
-		string a;
-		getline(cin, a);
+	int m;
+	cin >> m;
+	cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-		string b;
-		getline(cin, b);
+	vector<vector<int>> matrix(n);
+	for (int i = 0; i < n; i++) {
+		matrix[i].resize(m);
 
-		string result = morganAndString(a, b);
+		for (int j = 0; j < m; j++) {
+			cin >> matrix[i][j];
+		}
 
-		fout << result << "\n";
+		cin.ignore(numeric_limits<streamsize>::max(), '\n');
 	}
+
+	int result = connectedCell(matrix);
+
+	fout << result << "\n";
 
 	fout.close();
 
