@@ -15,19 +15,38 @@ int lilysHomework(vector<int> arr)
 	});
 	
 	int swapsForward = 0;
-	int swapsBackward = 0;
-	vector<int> barr(arr);
-	for (int i = 0; i < indeces.size(); ++i)
-	{
-		swap()
+	int swapsBackward = 0;	
+	vector<int> indecesReversed;
+	copy(indeces.rbegin(), indeces.rend(), back_inserter(indecesReversed));
+	for (int i = 0; i < indeces.size();)
+	{		
 		swapsForward += i != indeces[i];
-		int back = indeces.size() - i - 1;
-		swapsBackward += i != indeces[indeces.size() - i - 1];
-	}	
+		if (i != indeces[i])
+		{
+			swap(indeces[i], indeces[indeces[i]]);
+		}
+		else
+		{
+			++i;
+		}
+	}
+	
+	for (int i = 0; i < indecesReversed.size();)
+	{
+		swapsBackward += i != indecesReversed[i];
+		if (i != indecesReversed[i])
+		{
+			swap(indecesReversed[i], indecesReversed[indecesReversed[i]]);
+		}
+		else
+		{
+			++i;
+		}
+	}
 
 	int swaps = min(swapsForward, swapsBackward);
 
-	return swaps / 2 + (swaps & 1);
+	return swaps;
 }
 
 int main()
